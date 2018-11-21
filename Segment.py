@@ -12,20 +12,24 @@ class Segment:
         self.largestJointLimit = largestJointLimit
         self.transformationMatrix = self.computeTransformationMatrix(self.currentRotation)
 
+    def clamp(self, angle):
+        return max(min(angle, self.largestJointLimit), self.smallestJointLimit)
     def rotate(self, rotationInRadians):
-        self.currentRotation = rotationInRadians
+        self.currentRotation = self.clamp(rotationInRadians)
+
+    def relativeRotate(self, delta):
+        self.currentRotation = self.clamp(delta + self.currentRotation)
 
     def randomRotation(self):
         return np.random.uniform(self.smallestJointLimit, self.largestJointLimit)
 
-    def computeTransformationMatrix(self, rotationInRadians=None):
-        if rotationInRadians is None:
-            rotationInRadians = self.currentRotation
+    def computeTransformationMatrix(self, deltaRotationInRadians=0):
+        rotationInRadians = self.clamp(self.currentRotation + deltaRotationInRadians)
 
-        if rotationInRadians < self.smallestJointLimit:
-            raise ValueError("Your rotation amount is smaller than the joint limit!")
-        if rotationInRadians > self.largestJointLimit:
-            raise ValueError("Your rotation amount is larger than the joint limit!")
+        # if rotationInRadians < self.smallestJointLimit:
+        #     raise ValueError("Your rotation amount is smaller than the joint limit!")
+        # if rotationInRadians > self.largestJointLimit:
+        #     raise ValueError("Your rotation amount is larger than the joint limit!")
 
         rotationMatrix = buildRotationMatrix(self.segmentAxis, rotationInRadians)
         matrixTop = np.hstack([rotationMatrix, self.translation])

@@ -2,6 +2,9 @@ import numpy as np
 
 matrixBottom = np.array([[0,0,0,1]])
 
+def extractTranslation(transformationMatrix):
+    return transformationMatrix[:-1,-1]
+
 def axisToRoll(axis='x'):
     if axis == 'x':
         return 0
