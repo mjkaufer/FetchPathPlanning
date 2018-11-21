@@ -1,5 +1,5 @@
 import numpy as np
-from util import axisToRoll, buildRotationMatrix, matrixBottom
+from FetchUtil import axisToRoll, buildRotationMatrix, matrixBottom
 
 class Segment:
     def __init__(self, segmentLength, segmentAxis, smallestJointLimit=0, largestJointLimit=2*np.pi, parentSegment=None):

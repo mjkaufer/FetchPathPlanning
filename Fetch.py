@@ -1,14 +1,11 @@
 from Segment import Segment
 from math import radians as r
-from util import extractTranslation
+from FetchUtil import extractTranslation
 import numpy as np
 
 defaultArmLength = 200 # mm; this is a guess, we can change it later
 # the axes also might be off – todo, actually verify this
-# defaultFetchJoints = [
-#     (defaultArmLength, 'z'),
-#     (defaultArmLength, 'y'),
-# ]
+
 
 class Fetch:
     # joints is an array in the form [...(jointLength, jointAxis, smallJointLimit, largeJointLimit)...]
@@ -96,22 +93,22 @@ class Fetch:
 
         currentError = 10e10
 
-        initialPoses = fetch.getPoses()
+        initialPoses = self.getPoses()
 
         while currentError > errorThresh:
             if verbose > 0:
                 print("SGD Batch")
-            fetch.setRandomPoses()
+            self.setRandomPoses()
 
             for i in range(batchSize):
-                deltas = fetch.getPoseDeltas(goal)
-                currentError = np.linalg.norm(goal - fetch.getTool())
+                deltas = self.getPoseDeltas(goal)
+                currentError = np.linalg.norm(goal - self.getTool())
 
                 # scalar represents the amount of the normalized delta vector we want to apply
                 scalar = 10 ** (-1 * max(5 - np.log(currentError), 1))
                 scaledDeltas = (deltas / np.linalg.norm(deltas)) * scalar
                 scaledDeltas = np.array(scaledDeltas.tolist()).flatten()
-                fetch.applyRelativePoses(scaledDeltas)
+                self.applyRelativePoses(scaledDeltas)
 
                 if i % 5 == 0 and verbose > 1:
                     print(currentError)
@@ -120,17 +117,12 @@ class Fetch:
                     break
 
             if verbose > 0 and currentError > errorThresh:
-                print("This batch resulted in an error of", currentError, "- rerunning")
+                print("This batch resulted in an error of", currentError, "- rerunning from a random pose")
 
-        goalPoses = fetch.getPoses()
-        fetch.applyPoses(initialPoses)
+        goalPoses = self.getPoses()
+        self.applyPoses(initialPoses)
 
         if verbose > 0:
             print("Finished with an error of", currentError)
 
         return goalPoses, currentError
-
-fetch = Fetch()
-goal = np.array([[200, 0, 0]]).T
-goalPoses, goalError = fetch.inverseKinematics(goal)
-print("Reached goal with pose", goalPoses, "with error of", goalError)
