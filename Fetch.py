@@ -62,6 +62,9 @@ class Fetch:
     def getSegmentPosition(self, segmentIndex):
         return extractTranslation(self.segments[segmentIndex].computeGlobalTransformationMatrix())
 
+    def getSegmentPositions(self):
+        return [self.getSegmentPosition(i) for i in range(len(self.segments))]
+
     def getTool(self):
         return self.getSegmentPosition(-1)
 
