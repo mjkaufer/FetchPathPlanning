@@ -1,10 +1,23 @@
 from Segment import Segment
 from math import radians as r
-from FetchUtil import extractTranslation
+from FetchUtil import extractTranslation, vectorToNumpyArray, closestDistanceBetweenLines
 import numpy as np
+from vpython import vector, cylinder
 
-defaultArmLength = 200 # mm; this is a guess, we can change it later
-# the axes also might be off – todo, actually verify this
+defaultArmLength = 250 # mm; this is a guess, we can change it later
+armThreshold = 80 # this is how close a joint can be to a base element
+# it should basically represent the thickness of a joiny
+
+# nb, the z axis decreases as you go higher, but that's fine
+
+topBaseHeight = 500
+topBaseRadius = 100
+topBasePosition = vector(defaultArmLength - topBaseRadius, 0, -topBaseHeight // 2)
+
+bottomBaseHeight = 250
+bottomBaseRadius = 250
+bottomBasePosition = vector(defaultArmLength, 0, bottomBaseHeight)
+
 
 
 class Fetch:
@@ -14,6 +27,19 @@ class Fetch:
     # and z axis to be pointing up
     # let's just say units are in millimeters
     def __init__(self):
+        self.topBasePosition = topBasePosition
+        self.topBaseRadius = topBaseRadius
+        self.topBaseAxis = vector(0, 0, topBaseHeight)
+
+        self.bottomBasePosition = bottomBasePosition
+        self.bottomBaseRadius = bottomBaseRadius
+        self.bottomBaseAxis = vector(0, 0, bottomBaseHeight)
+
+        self.topBaseSegments = (vectorToNumpyArray(self.topBasePosition), vectorToNumpyArray(self.topBasePosition + self.topBaseAxis))
+        self.bottomBaseSegments = (vectorToNumpyArray(self.bottomBasePosition), vectorToNumpyArray(self.bottomBasePosition + self.bottomBaseAxis))
+
+        # z increases as you go downwards
+        self.zMax = self.bottomBaseSegments[-1][-1] - armThreshold
 
         self.segments = [
             # shoulder pan joint
@@ -67,6 +93,44 @@ class Fetch:
 
     def getTool(self):
         return self.getSegmentPosition(-1)
+
+    def isPoseValid(self):
+        segmentPositions = self.getSegmentPositions()
+
+        # I think the joint limits prevent the arms themselves from colliding
+        # but it's definitely possible to collide with the base
+
+        # That being said, we'll assume the first joint can't collide with the base due to joint limits
+
+        segmentPairs = []
+        for i in range(1, len(self.segments) - 1):
+            segmentPairs.append((segmentPositions[i].getA1(), segmentPositions[i + 1].getA1()))
+
+
+        for segmentPair in segmentPairs:
+
+            # remember, z decreases as we go up
+            if segmentPair[0][-1] > self.zMax or segmentPair[1][-1] > self.zMax:
+                return False
+
+            pa, pb, topDistance = closestDistanceBetweenLines(*(self.topBaseSegments + segmentPair))
+            pa, pb, bottomDistance = closestDistanceBetweenLines(*(self.bottomBaseSegments + segmentPair))
+
+
+            # technically this is incorrect; because the bases are cylindrical in nature,
+            # we can be at a distance of 0 from the cylinder, but that could be because we're
+            # above the cylinder, not inside it
+            # however, I think it's fine for this
+            # TODO, consider checking this by seeing if the z of both arm-joint pairs is
+            # greater/less than both of the base segments' z
+
+            if topDistance - topBaseRadius - armThreshold <= 0:
+                return False
+
+            if bottomDistance - bottomBaseRadius - armThreshold <= 0:
+                return False
+
+        return True
 
     # destination is a 3x1 xyz
     def getPoseDeltas(self, destination, delta=1e-2):

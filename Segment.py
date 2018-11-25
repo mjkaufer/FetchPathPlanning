@@ -14,6 +14,7 @@ class Segment:
 
     def clamp(self, angle):
         return max(min(angle, self.largestJointLimit), self.smallestJointLimit)
+
     def rotate(self, rotationInRadians):
         self.currentRotation = self.clamp(rotationInRadians)
 

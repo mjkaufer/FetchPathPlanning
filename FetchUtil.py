@@ -30,7 +30,11 @@ def buildRotationMatrix(rotationAxis, rotationInRadians):
     return np.roll(np.roll(xRotation, rollAmount, axis=1), rollAmount, axis=0)
 
 
+def vectorToNumpyArray(someVector):
+    return np.array((someVector.x, someVector.y, someVector.z))
+
 # This function taken from https://stackoverflow.com/a/18994296/2009336
+# so that it can take in vpython vectors
 # the clamp parameter limits results to line segments
 def closestDistanceBetweenLines(a0,a1,b0,b1,clampAll=True,clampA0=False,clampA1=False,clampB0=False,clampB1=False):
 

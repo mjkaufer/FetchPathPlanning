@@ -4,6 +4,7 @@
 * Basic segment model of the Fetch
     * Can do inverse kinematics, track tool position
     * Added basic visualization
+    * Can do some collision checking with base
     * Run `Driver.py` to see a test
 
 ## Requirements
@@ -13,11 +14,8 @@
 ## Todo
 * Have some way to move 3D camera around easily
 * Update internal fetch model to have real joint lengths
+    * Also real base heights / positions
+* Fix small bug in collision validation
 * Get the 'mobile' part working
     * Add some sort of a base to the fetch object
-* Build collision system
-    * Integrate code in FetchUtil to check if line segments collect
-    * Build line segments by getting positions of segment starts and ends
-    * Ensure non-adjacent segments aren't within a certain amount of units from each other
-        * The joint limits should account for adjacent segment collisions
 * Add Bi2RRT*

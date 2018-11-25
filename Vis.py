@@ -5,6 +5,13 @@ import time
 
 armCurve = None
 jointSpheres = None
+topCylinder = None
+baseCylinder = None
+scene.forward = vector(0, 1, 0)
+scene.center = vector(500, 0, 0)
+scene.ambient = vector(0.5, 0.5, 0.8)
+scene.width = 1000
+scene.height = 600
 
 def pointToVector(point):
     return vector(*point.T.tolist()[0])
@@ -20,6 +27,11 @@ def init(fetch):
 
     armCurve = curve(curvePoints)
     jointSpheres = [sphere(pos=point, radius=10) for point in curvePoints]
+
+    topCylinder = cylinder(pos=fetch.topBasePosition, axis=fetch.topBaseAxis, radius=fetch.topBaseRadius)
+    baseCylinder = cylinder(pos=fetch.bottomBasePosition, axis=fetch.bottomBaseAxis, radius=fetch.bottomBaseRadius)
+
+
     print(dir(armCurve))
 
 def rerender(fetch):
@@ -30,3 +42,4 @@ def rerender(fetch):
         point = points[i]
         armCurve.modify(i, pos=pointToVector(point))
         jointSpheres[i].pos = pointToVector(point)
+
