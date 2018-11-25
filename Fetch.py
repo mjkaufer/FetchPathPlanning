@@ -68,12 +68,13 @@ class Fetch:
                 self.segments[i].parentSegment = self.segments[i - 1]
 
     def getPoses(self):
-        return [segment.currentRotation for segment in self.segments]
+        return np.array([segment.currentRotation for segment in self.segments])
 
+    def getRandomPoses(self):
+        return np.array([segment.randomRotation() for segment in self.segments])
+        
     def setRandomPoses(self):
-        for segment in self.segments:
-            rotation = segment.randomRotation()
-            segment.rotate(rotation)
+        self.applyPoses(self.getRandomPoses())
 
     # poseArray is an array of radians
     def applyPoses(self, poseArray):
@@ -93,7 +94,17 @@ class Fetch:
     def getTool(self):
         return self.getSegmentPosition(-1)
 
-    def isPoseValid(self):
+    def isPoseValid(self, pose=None):
+        if pose is None:
+            return self.isCurrentPoseValid()
+
+        oldPose = self.getPoses()
+        self.applyPoses(pose)
+        valid = self.isCurrentPoseValid()
+        self.applyPoses(oldPose)
+        return valid
+
+    def isCurrentPoseValid(self):
         segmentPositions = self.getSegmentPositions()
 
         # I think the joint limits prevent the arms themselves from colliding
@@ -105,7 +116,6 @@ class Fetch:
         for i in range(1, len(self.segments) - 1):
             segmentPairs.append((segmentPositions[i].getA1(), segmentPositions[i + 1].getA1()))
 
-        print("TopSeg",self.topBaseSegments[0][-1], self.topBaseSegments[1][-1])
         for segmentPair in segmentPairs:
 
             # remember, z decreases as we go up
