@@ -46,6 +46,7 @@ def exampleBodyCollision():
     rerender(fetch)
 
 def goToGoalWithRRT(goal):
+    sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1,0,0))
     print("Finding ideal pose")
     idealPose, error = fetch.inverseKinematics(goal, verbose=1)
     # print("Ideal pose found", idealPose, "with error of", error)
