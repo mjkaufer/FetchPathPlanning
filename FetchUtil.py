@@ -94,7 +94,7 @@ def closestDistanceBetweenLines(a0,a1,b0,b1,clampAll=True,clampA0=False,clampA1=
 
 
 
-    # Lines criss-cross: Calculate the projected closest points
+    # Lines criss-cross: Calculate the 2ojected closest points
     t = (b0 - a0);
     detA = np.linalg.det([t, _B, cross])
     detB = np.linalg.det([t, _A, cross])

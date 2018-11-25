@@ -5,7 +5,8 @@ import numpy as np
 from vpython import vector, cylinder
 
 defaultArmLength = 250 # mm; this is a guess, we can change it later
-armThreshold = 80 # this is how close a joint can be to a base element
+
+armThreshold = 25 # this is how close a joint can be to a base element
 # it should basically represent the thickness of a joiny
 
 # nb, the z axis decreases as you go higher, but that's fine
@@ -116,6 +117,7 @@ class Fetch:
         for i in range(1, len(self.segments) - 1):
             segmentPairs.append((segmentPositions[i].getA1(), segmentPositions[i + 1].getA1()))
 
+        i = -1
         for segmentPair in segmentPairs:
 
             # remember, z decreases as we go up
@@ -133,6 +135,7 @@ class Fetch:
                 and self.topBaseSegments[0][-1] < segmentPair[1][-1]
                 and bottomDistance > armThreshold)
 
+            i += 1
             if topDistance - topBaseRadius - armThreshold <= 0 and (not aboveTopBase):
                 return False
 
@@ -171,7 +174,7 @@ class Fetch:
 
         initialPoses = self.getPoses()
 
-        while currentError > errorThresh and self.isPoseValid():
+        while currentError > errorThresh:
             if verbose > 0:
                 print("SGD Batch")
             self.setRandomPoses()
