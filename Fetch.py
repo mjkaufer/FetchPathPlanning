@@ -12,11 +12,11 @@ armThreshold = 80 # this is how close a joint can be to a base element
 
 topBaseHeight = 500
 topBaseRadius = 100
-topBasePosition = vector(defaultArmLength - topBaseRadius, 0, -topBaseHeight // 2)
+topBasePosition = vector(defaultArmLength - topBaseRadius, 0, topBaseHeight // 2)
 
 bottomBaseHeight = 250
 bottomBaseRadius = 250
-bottomBasePosition = vector(defaultArmLength, 0, bottomBaseHeight)
+bottomBasePosition = vector(defaultArmLength, 0, -bottomBaseHeight)
 
 
 
@@ -29,17 +29,16 @@ class Fetch:
     def __init__(self):
         self.topBasePosition = topBasePosition
         self.topBaseRadius = topBaseRadius
-        self.topBaseAxis = vector(0, 0, topBaseHeight)
+        self.topBaseAxis = vector(0, 0, -topBaseHeight)
 
         self.bottomBasePosition = bottomBasePosition
         self.bottomBaseRadius = bottomBaseRadius
-        self.bottomBaseAxis = vector(0, 0, bottomBaseHeight)
+        self.bottomBaseAxis = vector(0, 0, -bottomBaseHeight)
 
         self.topBaseSegments = (vectorToNumpyArray(self.topBasePosition), vectorToNumpyArray(self.topBasePosition + self.topBaseAxis))
         self.bottomBaseSegments = (vectorToNumpyArray(self.bottomBasePosition), vectorToNumpyArray(self.bottomBasePosition + self.bottomBaseAxis))
 
-        # z increases as you go downwards
-        self.zMax = self.bottomBaseSegments[-1][-1] - armThreshold
+        self.zMin = self.bottomBaseSegments[-1][-1] + armThreshold
 
         self.segments = [
             # shoulder pan joint
@@ -106,28 +105,28 @@ class Fetch:
         for i in range(1, len(self.segments) - 1):
             segmentPairs.append((segmentPositions[i].getA1(), segmentPositions[i + 1].getA1()))
 
-
+        print("TopSeg",self.topBaseSegments[0][-1], self.topBaseSegments[1][-1])
         for segmentPair in segmentPairs:
 
             # remember, z decreases as we go up
-            if segmentPair[0][-1] > self.zMax or segmentPair[1][-1] > self.zMax:
+            if segmentPair[0][-1] < self.zMin or segmentPair[1][-1] < self.zMin:
                 return False
 
             pa, pb, topDistance = closestDistanceBetweenLines(*(self.topBaseSegments + segmentPair))
             pa, pb, bottomDistance = closestDistanceBetweenLines(*(self.bottomBaseSegments + segmentPair))
 
+            aboveTopBase = (self.topBaseSegments[0][-1] < segmentPair[0][-1]
+                and self.topBaseSegments[0][-1] < segmentPair[1][-1]
+                and topDistance > armThreshold)
 
-            # technically this is incorrect; because the bases are cylindrical in nature,
-            # we can be at a distance of 0 from the cylinder, but that could be because we're
-            # above the cylinder, not inside it
-            # however, I think it's fine for this
-            # TODO, consider checking this by seeing if the z of both arm-joint pairs is
-            # greater/less than both of the base segments' z
+            aboveBottomBase = (self.bottomBaseSegments[0][-1] < segmentPair[0][-1]
+                and self.topBaseSegments[0][-1] < segmentPair[1][-1]
+                and bottomDistance > armThreshold)
 
-            if topDistance - topBaseRadius - armThreshold <= 0:
+            if topDistance - topBaseRadius - armThreshold <= 0 and (not aboveTopBase):
                 return False
 
-            if bottomDistance - bottomBaseRadius - armThreshold <= 0:
+            if bottomDistance - bottomBaseRadius - armThreshold <= 0 and (not aboveBottomBase):
                 return False
 
         return True
@@ -162,7 +161,7 @@ class Fetch:
 
         initialPoses = self.getPoses()
 
-        while currentError > errorThresh:
+        while currentError > errorThresh and self.isPoseValid():
             if verbose > 0:
                 print("SGD Batch")
             self.setRandomPoses()
@@ -181,7 +180,13 @@ class Fetch:
                     print(currentError)
 
                 if currentError < errorThresh:
-                    break
+                    if not self.isPoseValid():
+                        if verbose > 0:
+                            print("Found invalid pose; trying to find a new pose")
+                        continue
+                    else:
+                        break
+
 
             if verbose > 0 and currentError > errorThresh:
                 print("This batch resulted in an error of", currentError, "- rerunning from a random pose")

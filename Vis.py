@@ -10,6 +10,10 @@ baseCylinder = None
 scene.forward = vector(0, 1, 0)
 scene.center = vector(500, 0, 0)
 scene.ambient = vector(0.5, 0.5, 0.8)
+
+# this is so the z axis increases upwards
+scene.camera.up = vector(0, -1, 0)
+
 scene.width = 1000
 scene.height = 600
 
@@ -31,8 +35,6 @@ def init(fetch):
     topCylinder = cylinder(pos=fetch.topBasePosition, axis=fetch.topBaseAxis, radius=fetch.topBaseRadius)
     baseCylinder = cylinder(pos=fetch.bottomBasePosition, axis=fetch.bottomBaseAxis, radius=fetch.bottomBaseRadius)
 
-
-    print(dir(armCurve))
 
 def rerender(fetch):
     global armCurve

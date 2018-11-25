@@ -21,13 +21,19 @@ def goToGoal(goal):
         rerender(fetch)
         time.sleep(0.05)
 
-def exampleCollision():
-    degreePoses = [0, 20, 0, -129, 0, -120, 0]
+def exampleFloorCollision():
+    degreePoses = [0, 40, 0, -20, 0, -30, 0]
     poses = [r(degreePose) for degreePose in degreePoses]
     fetch.applyPoses(poses)
     rerender(fetch)
 
-    print(fetch.isPoseValid())
+def exampleBodyCollision():
+    degreePoses = [0, -60, 0, -120, 0, -60, 0]
+    poses = [r(degreePose) for degreePose in degreePoses]
+    fetch.applyPoses(poses)
+    rerender(fetch)
 
-exampleCollision()
+exampleBodyCollision()
+print("Is the pose valid?",fetch.isPoseValid())
+# exampleFloorCollision()
 # goToGoal(goal)

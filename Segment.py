@@ -24,6 +24,7 @@ class Segment:
     def randomRotation(self):
         return np.random.uniform(self.smallestJointLimit, self.largestJointLimit)
 
+    # positive angle goes CW, easy change by negating buildRotationMatrix
     def computeTransformationMatrix(self, deltaRotationInRadians=0):
         rotationInRadians = self.clamp(self.currentRotation + deltaRotationInRadians)
 
