@@ -18,3 +18,7 @@
 * Get the 'mobile' part working
     * Add some sort of a base to the fetch object
 * Add Bi2RRT*
+* Try to improve RRT
+    * Right now we only consider distance between closest nodes
+    * Should probably also factor in the node's distance to the start/goal
+        * Maybe this is what RRT* is lol idk
