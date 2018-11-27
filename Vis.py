@@ -36,6 +36,10 @@ def init(fetch):
     baseCylinder = cylinder(pos=fetch.bottomBasePosition, axis=fetch.bottomBaseAxis, radius=fetch.bottomBaseRadius)
 
 
+    floorZ = fetch.bottomBaseSegments[1][-1]
+    size = 1000
+    box(pos=vector(size / 2, 0, floorZ), size=vector(size * 3, size, 0.2), color=vector(1, 0, 0))
+
 def rerender(fetch):
     global armCurve
     global jointSpheres
