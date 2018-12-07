@@ -4,10 +4,15 @@ from FetchUtil import extractTranslation, vectorToNumpyArray, closestDistanceBet
 import numpy as np
 from vpython import vector, cylinder
 
-defaultArmLength = 250 # mm; this is a guess, we can change it later
+# base diameter: 23 in
+# base height: 14.25 in
+# head radius: 9.5 in
+# arms max.width: 6 in
 
-armThreshold = 25 # this is how close a joint can be to a base element
+defaultArmLength = 219  # mm; this is a guess, we can change it later
+armThreshold = 25  # this is how close a joint can be to a base element
 # it should basically represent the thickness of a joint
+# so the thickness of the arm joints is 6 inches ~= 15.24cm -> TODO: armThreshold = 0.153 meters
 
 # nb, the z axis decreases as you go higher, but that's fine
 
@@ -16,9 +21,21 @@ topBaseRadius = 100
 topBasePosition = vector(defaultArmLength - topBaseRadius, 0, topBaseHeight // 2)
 
 bottomBaseHeight = 250
-bottomBaseRadius = 250
+bottomBaseRadius = 140  # diameter: 11 inches measured = 27.94 cm -> Radius ~= 14cm
 bottomBasePosition = vector(defaultArmLength, 0, -bottomBaseHeight)
 
+# TODO: look at the file fetch.urdf 'rosed fetch_descriptor/robot/fetch.urdf'
+# TODO: and look at the joints (not links) and complete the measurements from there!
+joint_lengths = {
+    "bellows_joint": 0,
+    "bellows_joint2": 0,
+    "elbow_flex_joint": 0.133,  # in meters
+    "forearm_roll_joint": 0.197,  # in meters
+    "upperarm_roll_joint": 0.219,
+    "wrist_flex_joint": 0.1245,
+    "wrist_roll_joint": 0.1385,
+
+}
 
 
 class Fetch:
@@ -27,7 +44,9 @@ class Fetch:
     # define x to be axis pointing from fetch's face, y to be axis perpendicular to x axis and parallel to ground,
     # and z axis to be pointing up
     # let's just say units are in millimeters
-    def __init__(self):
+    def __init__(self, initial_position = None):
+        if initial_position is None:
+            initial_position = np.array([0, 0, 0])
         self.topBasePosition = topBasePosition
         self.topBaseRadius = topBaseRadius
         self.topBaseAxis = vector(0, 0, -topBaseHeight)
@@ -36,8 +55,10 @@ class Fetch:
         self.bottomBaseRadius = bottomBaseRadius
         self.bottomBaseAxis = vector(0, 0, -bottomBaseHeight)
 
-        self.topBaseSegments = (vectorToNumpyArray(self.topBasePosition), vectorToNumpyArray(self.topBasePosition + self.topBaseAxis))
-        self.bottomBaseSegments = (vectorToNumpyArray(self.bottomBasePosition), vectorToNumpyArray(self.bottomBasePosition + self.bottomBaseAxis))
+        self.topBaseSegments = (
+        vectorToNumpyArray(self.topBasePosition), vectorToNumpyArray(self.topBasePosition + self.topBaseAxis))
+        self.bottomBaseSegments = (
+        vectorToNumpyArray(self.bottomBasePosition), vectorToNumpyArray(self.bottomBasePosition + self.bottomBaseAxis))
 
         self.zMin = self.bottomBaseSegments[-1][-1] + armThreshold
 
@@ -64,16 +85,19 @@ class Fetch:
             Segment(defaultArmLength, 'x', ),
         ]
 
+        self.base = initial_position
+
         for i in range(len(self.segments)):
             if i > 0:
                 self.segments[i].parentSegment = self.segments[i - 1]
 
     def getPoses(self):
-        return np.array([segment.currentRotation for segment in self.segments])
+        return np.concatenate([[segment.currentRotation for segment in self.segments], self.base])
 
     def getRandomPoses(self):
-        return np.array([segment.randomRotation() for segment in self.segments])
-        
+        return np.concatenate([[segment.randomRotation() for segment in self.segments],
+                               np.random.uniform(-5, 5, (2, )), np.random.uniform(0, 2*np.pi, (1, ))])
+
     def setRandomPoses(self):
         self.applyPoses(self.getRandomPoses())
 
@@ -81,16 +105,24 @@ class Fetch:
     def applyPoses(self, poseArray):
         for i in range(len(self.segments)):
             self.segments[i].rotate(poseArray[i])
+        self.base = np.array(poseArray[-3:])
 
     def applyRelativePoses(self, relativePoseArray):
         for i in range(len(self.segments)):
             self.segments[i].relativeRotate(relativePoseArray[i])
+        self.base += np.array(relativePoseArray[-3:])
+        if not (0 <= self.base[2] <= 2*np.pi):
+            while self.base[2] < 0:
+                self.base[2] += 2*np.pi
+            while self.base[2] >= 2*np.pi:
+                self.base[2] -= 2*np.pi
 
     def getSegmentPosition(self, segmentIndex):
         return extractTranslation(self.segments[segmentIndex].computeGlobalTransformationMatrix())
 
     def getSegmentPositions(self):
-        return [self.getSegmentPosition(i) for i in range(len(self.segments))]
+        return np.concatenate([[self.getSegmentPosition(i) for i in range(len(self.segments))],
+                               self.base])
 
     def getTool(self):
         return self.getSegmentPosition(-1)
@@ -119,7 +151,6 @@ class Fetch:
 
         i = -1
         for segmentPair in segmentPairs:
-
             # remember, z decreases as we go up
             if segmentPair[0][-1] < self.zMin or segmentPair[1][-1] < self.zMin:
                 return False
@@ -128,12 +159,12 @@ class Fetch:
             pa, pb, bottomDistance = closestDistanceBetweenLines(*(self.bottomBaseSegments + segmentPair))
 
             aboveTopBase = (self.topBaseSegments[0][-1] < segmentPair[0][-1]
-                and self.topBaseSegments[0][-1] < segmentPair[1][-1]
-                and topDistance > armThreshold)
+                            and self.topBaseSegments[0][-1] < segmentPair[1][-1]
+                            and topDistance > armThreshold)
 
             aboveBottomBase = (self.bottomBaseSegments[0][-1] < segmentPair[0][-1]
-                and self.topBaseSegments[0][-1] < segmentPair[1][-1]
-                and bottomDistance > armThreshold)
+                               and self.topBaseSegments[0][-1] < segmentPair[1][-1]
+                               and bottomDistance > armThreshold)
 
             i += 1
             if topDistance - topBaseRadius - armThreshold <= 0 and (not aboveTopBase):
@@ -146,9 +177,8 @@ class Fetch:
 
     # destination is a 3x1 xyz
     def getPoseDeltas(self, destination, delta=1e-2):
-
         initialToolPos = self.getTool()
-        currentError = np.vstack([destination - initialToolPos, 1])
+        currentError = np.vstack([destination - initialToolPos, 1])  # 4x1
 
         jac = []
 
@@ -156,10 +186,11 @@ class Fetch:
             self.segments[i].relativeRotate(delta)
             currentToolPos = self.getTool()
             self.segments[i].relativeRotate(-delta)
-            toolDelta = np.vstack([currentToolPos - initialToolPos, 1])
+            toolDelta = np.vstack([currentToolPos - initialToolPos, 1])  # 4x1
             jac.append(toolDelta)
+        # TODO: add the jacobians for the base link (x, y, theta) somehow....
 
-        jac = np.array(jac)[:,:,0]
+        jac = np.array(jac)[:, :, 0]
 
         return jac.dot(currentError)
 
@@ -167,20 +198,19 @@ class Fetch:
     # if verbose is 0, shh
     # if verbose is 1, just print batch stats
     # if verbose is 2, print errors every 5 samples
-
     def inverseKinematics(self, goal, batchSize=1000, errorThresh=5, verbose=1):
-
-        currentError = 10e10
+        assert(batchSize > 0)
+        currentError = None
 
         initialPoses = self.getPoses()
 
-        while currentError > errorThresh:
+        while currentError is None or currentError > errorThresh:
             if verbose > 0:
                 print("SGD Batch")
             self.setRandomPoses()
 
             for i in range(batchSize):
-                deltas = self.getPoseDeltas(goal)
+                deltas = self.getPoseDeltas(goal)  # TODO: modify this to return 10D vector (include jacs for the base)
                 currentError = np.linalg.norm(goal - self.getTool())
 
                 # scalar represents the amount of the normalized delta vector we want to apply
@@ -200,12 +230,11 @@ class Fetch:
                     else:
                         break
 
-
             if verbose > 0 and currentError > errorThresh:
                 print("This batch resulted in an error of", currentError, "- rerunning from a random pose")
 
         goalPoses = self.getPoses()
-        self.applyPoses(initialPoses)
+        self.applyPoses(initialPoses)  # TODO: ?!?! huh, why is it not the goal pose?
 
         if verbose > 0:
             print("Finished with an error of", currentError)

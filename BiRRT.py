@@ -23,8 +23,8 @@ class BiRRT:
     # which means you have to do the inverse kinematics beforehand
     def __init__(self, fetch, goalPose, maxNodeDistance=0.01, connectionRate=0.02, maxProjections=1e10):
         self.fetch = fetch
-        self.start = fetch.getPoses()
-        self.goal = np.array(goalPose)
+        self.start = fetch.getPoses()  # TODO: extend getPose to also get the (x, y, theta) of the base
+        self.goal = np.array(goalPose)  # TODO: put the goal (x, y, theta) in the goalPose
 
         if not self.fetch.isPoseValid(self.start):
             raise ValueError("Invalid start pose (how did this happen)")
@@ -172,6 +172,7 @@ class BiRRT:
         return False
 
         print("Tried to connect trees; best distance was", bestDistance)
+
     def step(self):
         if self.solution:
             print("Done – please stop calling step")
@@ -186,6 +187,7 @@ class BiRRT:
 
         nodeToAdd = self.generateNode()
         self.addNodeToTree(nodeToAdd)
+
     # return true if we've added a node to the trees; update self.solution if we found a path
     def addNodeToTree(self, nodeToAdd):
 

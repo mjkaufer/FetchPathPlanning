@@ -1,8 +1,10 @@
 import numpy as np
 from FetchUtil import axisToRoll, buildRotationMatrix, matrixBottom
 
+
 class Segment:
-    def __init__(self, segmentLength, segmentAxis, smallestJointLimit=0, largestJointLimit=2*np.pi, parentSegment=None):
+    def __init__(self, segmentLength, segmentAxis, smallestJointLimit=0, largestJointLimit=2 * np.pi,
+                 parentSegment=None):
         # self.translation = np.roll(np.array([segmentLength, 0, 0]), axisToRoll(segmentAxis))
         self.translation = np.matrix([segmentLength, 0, 0]).T
         self.segmentAxis = segmentAxis
