@@ -7,7 +7,7 @@ from vpython import vector, cylinder
 defaultArmLength = 250 # mm; this is a guess, we can change it later
 
 armThreshold = 25 # this is how close a joint can be to a base element
-# it should basically represent the thickness of a joiny
+# it should basically represent the thickness of a joint
 
 # nb, the z axis decreases as you go higher, but that's fine
 
