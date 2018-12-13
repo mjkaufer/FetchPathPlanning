@@ -24,7 +24,7 @@ def cross(a, b):
 
 
 # base, torso, shoulder_pan, shoulder_lift, upperarm_roll, elbow_flex, forearm_roll, wrist_roll, wrist_flex, gripper
-fetch_transl = [
+fetch_transl = np.array([
     np.array([-0.086875, 0, 0.37743]),  # torso
     np.array([0.119525, 0, 0.34858]),  # shoulder_pan
     np.array([0.117, 0, 0.06]),  # shoulder_lift
@@ -34,10 +34,10 @@ fetch_transl = [
     np.array([0.1245, 0, 0]),  # wrist_flex
     np.array([0.1385, 0, 0]),  # wrist_roll
     np.array([0.16645, 0, 0]),  # gripper
-]
+])
 
 # when the robot is at rest!!!
-fetch_points_on_axes = [
+fetch_points_on_axes = np.array([
     np.sum(fetch_transl[:1], axis=0),  # torso
     np.sum(fetch_transl[:2], axis=0),  # shoulder_pan
     np.sum(fetch_transl[:3], axis=0),  # shoulder_lift
@@ -47,9 +47,9 @@ fetch_points_on_axes = [
     np.sum(fetch_transl[:7], axis=0),  # wrist_flex
     np.sum(fetch_transl[:8], axis=0),  # wrist_roll
     np.sum(fetch_transl[:9], axis=0),  # tool!
-]
+])
 
-fetch_axes = [
+fetch_axes = np.array([
     np.array([0, 0, 1]),  # torso
     np.array([0, 0, 1]),  # shoulder_pan
     np.array([0, 1, 0]),  # shoulder_lift
@@ -58,9 +58,9 @@ fetch_axes = [
     np.array([1, 0, 0]),  # forearm_roll
     np.array([0, 1, 0]),  # wrist_flex
     np.array([1, 0, 0]),  # wrist_roll
-]
+])
 
-fetch_twists = [
+fetch_twists = np.array([
     np.array([0, 0, 0, 0, 0, 1]),  # torso
     np.concatenate([fetch_axes[1], cross(fetch_points_on_axes[1], fetch_axes[1])], axis=0),  # shoulder_pan
     np.concatenate([fetch_axes[2], cross(fetch_points_on_axes[2], fetch_axes[2])], axis=0),  # shoulder_lift
@@ -69,7 +69,7 @@ fetch_twists = [
     np.concatenate([fetch_axes[5], cross(fetch_points_on_axes[5], fetch_axes[5])], axis=0),  # forearm_roll
     np.concatenate([fetch_axes[6], cross(fetch_points_on_axes[6], fetch_axes[6])], axis=0),  # wrist_flex
     np.concatenate([fetch_axes[7], cross(fetch_points_on_axes[7], fetch_axes[7])], axis=0),  # wrist_roll
-]
+])
 
 fetch_joint_limits = [
     [0, 0.38615],  # torso
