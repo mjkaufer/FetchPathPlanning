@@ -6,62 +6,54 @@ from Vis import init, rerender
 from math import radians as r
 from BiRRT import BiRRT
 
-fetch = Fetch()
 
-init(fetch)
-goal = np.array([[500, 000, -50]]).T
-
-
-# [-0.43352042 -1.43271184  6.04244123 -1.75627955  3.6502145   2.1716629
-#   2.67857958]
-
-def goToPose(pose):
+def go_to_pose(robot, goal_pose):
     segmentation = 100
-    poseDelta = (np.array(pose) - np.array(fetch.getPoses())) / segmentation
+    pose_delta = (np.array(goal_pose) - np.array(robot.getPoses())) / segmentation
     for i in range(segmentation):
-        fetch.applyRelativePoses(poseDelta)
+        robot.applyRelativePoses(pose_delta)
 
-        if not fetch.isPoseValid():
+        if not robot.isPoseValid():
             print("Invalid pose!!!")
 
-        rerender(fetch)
+        rerender(robot)
         time.sleep(0.05)
 
 
-def goToGoal(goal):
+def go_to_goal(robot, goal):
     sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1, 0, 0))
     print("Finding ideal pose")
-    idealPose, error = fetch.inverseKinematics(goal, verbose=0)
+    idealPose, error = robot.inverseKinematics(goal, verbose=0)
     print("Ideal pose found", idealPose, "with error of", error)
-    goToPose(idealPose)
+    go_to_pose(robot, idealPose)
 
 
-def exampleFloorCollision():
+def example_floor_collision(robot):
     degreePoses = [0, 40, 0, -20, 0, -30, 0]
     poses = [r(degreePose) for degreePose in degreePoses]
-    fetch.applyPoses(poses)
-    rerender(fetch)
+    robot.applyPoses(poses)
+    rerender(robot)
 
 
-def exampleBodyCollision():
+def example_body_collision(robot):
     degreePoses = [0, -60, 0, -120, 0, -60, 0]
     poses = [r(degreePose) for degreePose in degreePoses]
-    fetch.applyPoses(poses)
-    rerender(fetch)
+    robot.applyPoses(poses)
+    rerender(robot)
 
 
-def goToGoalWithRRT(goal):
+def go_to_goal_with_rrt(robot, goal):
     sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1, 0, 0))
     print("Finding ideal pose")
-    idealPose, error = fetch.inverseKinematics(goal, verbose=1)
-    # print("Ideal pose found", idealPose, "with error of", error)
-    # idealPose = np.array([-1.13793837, -0.42068421, 5.03419161, -2.0732122,
+    ideal_pose, error = robot.inverseKinematics(goal, verbose=1)
+    # print("Ideal pose found", ideal_pose, "with error of", error)
+    # ideal_pose = np.array([-1.13793837, -0.42068421, 5.03419161, -2.0732122,
     #     5.94965048, -0.82803775, 5.27579817])
-    goToPoseWithRRT(idealPose)
+    go_to_pose_with_rrt(robot, ideal_pose)
 
 
-def goToPoseWithRRT(pose):
-    rrt = BiRRT(fetch, pose)
+def go_to_pose_with_rrt(robot, goal_pose):
+    rrt = BiRRT(robot, goal_pose)
     i = 0
     print("Generating RRT")
     while rrt.solution is None:
@@ -77,14 +69,14 @@ def goToPoseWithRRT(pose):
     # dt = desiredTime / len(rrt.solution)
     print("Planning complete; moving to goal pose")
 
-    for pose in rrt.solution:
-        fetch.applyPoses(pose)
-        segmentPositions = fetch.getSegmentPositions()
+    for goal_pose in rrt.solution:
+        robot.applyPoses(goal_pose)
+        segmentPositions = robot.getSegmentPositions()
 
-        if not fetch.isCurrentPoseValid():
+        if not robot.isCurrentPoseValid():
             print("INVALID POSE BEEP BOOP")
 
-        rerender(fetch)
+        rerender(robot)
 
     print("All done")
     print("Start tree length", len(rrt.startTree))
@@ -95,18 +87,26 @@ def goToPoseWithRRT(pose):
     print(solutionRatio, "% of RRT used for solution")
 
 
-# here is an example of a pose that was found for an end goal, which has
-# a linear path planning that would result in an invalid pose
-pose = np.array([-1, 0.2, 7.71942311e-01, 2.24147991e+00, 4.61934400e-04, 1.03087359e+00, 2.18929696e-03, 1, 1, np.pi/2])
-goToPose(pose)
+if __name__ == "__main__":
+    # [-0.43352042 -1.43271184  6.04244123 -1.75627955  3.6502145   2.1716629 2.67857958]
+    fetch = Fetch()
 
-# and here is how we get to the pose with RRT
-goToPoseWithRRT(pose)
-print("Is the pose valid?", fetch.isPoseValid())
+    init(fetch)
+    goal = np.array([[500, 000, -50]]).T
 
-# exampleBodyCollision()
-# goToGoalWithRRT(goal)
-# goToGoal(goal)
+    # here is an example of a pose that was found for an end goal, which has
+    # a linear path planning that would result in an invalid pose
+    pose = np.array(
+        [-1, 0.2, 7.71942311e-01, 2.24147991e+00, 4.61934400e-04, 1.03087359e+00, 2.18929696e-03, 1, 1, np.pi / 2])
+    go_to_pose(fetch, pose)
 
-# goToPose()
-# rerender(fetch)
+    # and here is how we get to the pose with RRT
+    go_to_pose_with_rrt(fetch, pose)
+    print("Is the pose valid?", fetch.isPoseValid())
+
+    # example_body_collision(fetch)
+    # go_to_goal_with_rrt(fetch, goal)
+    # go_to_goal(fetch, goal)
+
+    # go_to_pose(fetch)
+    # rerender(fetch)
