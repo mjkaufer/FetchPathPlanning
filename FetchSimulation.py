@@ -8,6 +8,7 @@ Created on 13 Dec 2018 at 10:33
 from __future__ import print_function
 
 from math import sin, cos
+import numpy as np
 
 import actionlib
 import rospy
@@ -16,6 +17,70 @@ from geometry_msgs.msg import Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from moveit_python import MoveGroupInterface, PlanningSceneInterface
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+
+
+def cross(a, b):
+    return np.array([a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]])
+
+
+# base, torso, shoulder_pan, shoulder_lift, upperarm_roll, elbow_flex, forearm_roll, wrist_roll, wrist_flex, gripper
+fetch_transl = [
+    np.array([-0.086875, 0, 0.37743]),  # torso
+    np.array([0.119525, 0, 0.34858]),  # shoulder_pan
+    np.array([0.117, 0, 0.06]),  # shoulder_lift
+    np.array([0.219, 0, 0]),  # upperarm_roll
+    np.array([0.1279, 0.0073, 0]),  # elbow_flex
+    np.array([0.197, 0, 0]),  # forearm_roll
+    np.array([0.1245, 0, 0]),  # wrist_flex
+    np.array([0.1385, 0, 0]),  # wrist_roll
+    np.array([0.16645, 0, 0]),  # gripper
+]
+
+# when the robot is at rest!!!
+fetch_points_on_axes = [
+    np.sum(fetch_transl[:1]),  # torso
+    np.sum(fetch_transl[:2]),  # shoulder_pan
+    np.sum(fetch_transl[:3]),  # shoulder_lift
+    np.sum(fetch_transl[:4]),  # upperarm_roll
+    np.sum(fetch_transl[:5]),  # elbow_flex
+    np.sum(fetch_transl[:6]),  # forearm_roll
+    np.sum(fetch_transl[:7]),  # wrist_flex
+    np.sum(fetch_transl[:8]),  # wrist_roll
+    np.sum(fetch_transl[:9]),  # tool!
+]
+
+fetch_axes = [
+    np.array([0, 0, 1]),  # torso
+    np.array([0, 0, 1]),  # shoulder_pan
+    np.array([0, 1, 0]),  # shoulder_lift
+    np.array([1, 0, 0]),  # upperarm_roll
+    np.array([0, 1, 0]),  # elbow_flex
+    np.array([1, 0, 0]),  # forearm_roll
+    np.array([0, 1, 0]),  # wrist_flex
+    np.array([1, 0, 0]),  # wrist_roll
+]
+
+fetch_twists = [
+    np.array([0, 0, 0, 0, 0, 1]),  # torso
+    np.concatenate([fetch_axes[1], cross(fetch_points_on_axes[1], fetch_axes[1])], axis=0),  # shoulder_pan
+    np.concatenate([fetch_axes[2], cross(fetch_points_on_axes[2], fetch_axes[2])], axis=0),  # shoulder_lift
+    np.concatenate([fetch_axes[3], cross(fetch_points_on_axes[3], fetch_axes[3])], axis=0),  # upperarm_roll
+    np.concatenate([fetch_axes[4], cross(fetch_points_on_axes[4], fetch_axes[4])], axis=0),  # elbow_flex
+    np.concatenate([fetch_axes[5], cross(fetch_points_on_axes[5], fetch_axes[5])], axis=0),  # forearm_roll
+    np.concatenate([fetch_axes[6], cross(fetch_points_on_axes[6], fetch_axes[6])], axis=0),  # wrist_flex
+    np.concatenate([fetch_axes[7], cross(fetch_points_on_axes[7], fetch_axes[7])], axis=0),  # wrist_roll
+]
+
+fetch_joint_limits = [
+    [0, 0.38615],  # torso
+    [-1.6056, 1.6056],  # shoulder_pan
+    [-1.221, 1.518],  # shoulder_lift
+    [0, 2 * np.pi],  # upperarm_roll
+    [-2.251, 2.251],  # elbow_flex
+    [0, 2 * np.pi],  # forearm_roll
+    [-2.16, 2.16],  # wrist_flex
+    [0, 2 * np.pi],  # wrist_roll
+]
 
 
 # Move base using navigation stack
@@ -165,8 +230,8 @@ class FetchSimulation:
     def move_to_pose(self, pose_10d):
         arm_joint_values = pose_10d[:7]
         base_joint_values = pose_10d[7:]
-        assert(len(arm_joint_values) == 7)
-        assert(len(base_joint_values) == 3)
+        assert (len(arm_joint_values) == 7)
+        assert (len(base_joint_values) == 3)
 
         # for moving the base
         move_base = rospy.Publisher('cmd_vel', Twist, queue_size=1)
@@ -177,7 +242,7 @@ class FetchSimulation:
         try:
             base_goal = Twist()
             base_goal.linear.x = base_joint_values[0]  # x
-            base_goal.linear.y = base_joint_values[1]  # y
+            # base_goal.linear.y = base_joint_values[1]  # y
             base_goal.angular.z = base_joint_values[2]  # theta
             move_base.publish(base_goal)
 
