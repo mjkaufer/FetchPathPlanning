@@ -38,15 +38,15 @@ fetch_transl = [
 
 # when the robot is at rest!!!
 fetch_points_on_axes = [
-    np.sum(fetch_transl[:1]),  # torso
-    np.sum(fetch_transl[:2]),  # shoulder_pan
-    np.sum(fetch_transl[:3]),  # shoulder_lift
-    np.sum(fetch_transl[:4]),  # upperarm_roll
-    np.sum(fetch_transl[:5]),  # elbow_flex
-    np.sum(fetch_transl[:6]),  # forearm_roll
-    np.sum(fetch_transl[:7]),  # wrist_flex
-    np.sum(fetch_transl[:8]),  # wrist_roll
-    np.sum(fetch_transl[:9]),  # tool!
+    np.sum(fetch_transl[:1], axis=0),  # torso
+    np.sum(fetch_transl[:2], axis=0),  # shoulder_pan
+    np.sum(fetch_transl[:3], axis=0),  # shoulder_lift
+    np.sum(fetch_transl[:4], axis=0),  # upperarm_roll
+    np.sum(fetch_transl[:5], axis=0),  # elbow_flex
+    np.sum(fetch_transl[:6], axis=0),  # forearm_roll
+    np.sum(fetch_transl[:7], axis=0),  # wrist_flex
+    np.sum(fetch_transl[:8], axis=0),  # wrist_roll
+    np.sum(fetch_transl[:9], axis=0),  # tool!
 ]
 
 fetch_axes = [
@@ -273,3 +273,8 @@ class FetchSimulation:
             move_base.publish(Twist())  # stop the base from moving
             move_arm_and_torso.cancel_all_goals()
         pass
+
+
+if __name__ == "__main__":
+    for i in fetch_points_on_axes:
+        print(i)
