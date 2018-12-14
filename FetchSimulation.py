@@ -251,6 +251,7 @@ class FetchSimulation:
                 # base_goal.linear.y = base_joint_values[1]  # y
                 base_goal.angular.z = base_joint_values[2]  # theta
             move_base.publish(base_goal)
+            print("Published base goal")
 
             if relative:
                 self.shoulder_pan_joint.position += arm_joint_values[0]  # arm1
@@ -281,7 +282,11 @@ class FetchSimulation:
             arm_and_torso_goal = FollowJointTrajectoryGoal()
             arm_and_torso_goal.trajectory = arm_and_torso_trajectory
 
-            move_arm_and_torso.send_goal_and_wait(arm_and_torso_goal)
+            print("Got arm and torso goal")
+            move_arm_and_torso.send_goal(arm_and_torso_goal)
+            print("Sent arm and torso goal\nWaiting 5s")
+            move_arm_and_torso.wait_for_server(rospy.Duration(5))
+            print("Moving on!")
         except Exception as e:
             print(e)
             move_base.publish(Twist())  # stop the base from moving

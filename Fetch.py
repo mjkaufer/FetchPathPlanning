@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from Segment import Segment
 from math import radians as r
-from FetchUtil import extractTranslation, vectorToNumpyArray, closestDistanceBetweenLines
+from FetchUtil import extractTranslation, closestDistanceBetweenLines
 import numpy as np
-from vpython import vector, cylinder
+# from vpython import vector, cylinder
 
 # base diameter: 23 in
 # base height: 14.25 in
@@ -20,11 +21,11 @@ armThreshold = 25  # this is how close a joint can be to a base element
 
 topBaseHeight = 500
 topBaseRadius = 100
-topBasePosition = vector(defaultArmLength - topBaseRadius, 0, topBaseHeight // 2)
+topBasePosition = np.array([defaultArmLength - topBaseRadius, 0, topBaseHeight // 2])
 
 bottomBaseHeight = 250
 bottomBaseRadius = 140  # diameter: 11 inches measured = 27.94 cm -> Radius ~= 14cm
-bottomBasePosition = vector(defaultArmLength, 0, -bottomBaseHeight)
+bottomBasePosition = np.array([defaultArmLength, 0, -bottomBaseHeight])
 
 # TODO: look at the file fetch.urdf 'rosed fetch_descriptor/robot/fetch.urdf'
 # TODO: and look at the joints (not links) and complete the measurements from there!
@@ -48,19 +49,17 @@ class Fetch:
     # let's just say units are in millimeters
     def __init__(self, initial_position = None):
         if initial_position is None:
-            initial_position = np.array([0, 0, 0])
+            initial_position = np.array([0, 0, 0], dtype=np.float64)
         self.topBasePosition = topBasePosition
         self.topBaseRadius = topBaseRadius
-        self.topBaseAxis = vector(0, 0, -topBaseHeight)
+        self.topBaseAxis = np.array([0, 0, -topBaseHeight])
 
         self.bottomBasePosition = bottomBasePosition
         self.bottomBaseRadius = bottomBaseRadius
-        self.bottomBaseAxis = vector(0, 0, -bottomBaseHeight)
+        self.bottomBaseAxis = np.array([0, 0, -bottomBaseHeight])
 
-        self.topBaseSegments = (
-        vectorToNumpyArray(self.topBasePosition), vectorToNumpyArray(self.topBasePosition + self.topBaseAxis))
-        self.bottomBaseSegments = (
-        vectorToNumpyArray(self.bottomBasePosition), vectorToNumpyArray(self.bottomBasePosition + self.bottomBaseAxis))
+        self.topBaseSegments = (self.topBasePosition, self.topBasePosition + self.topBaseAxis)
+        self.bottomBaseSegments = (self.bottomBasePosition, self.bottomBasePosition + self.bottomBaseAxis)
 
         self.zMin = self.bottomBaseSegments[-1][-1] + armThreshold
 
@@ -71,19 +70,19 @@ class Fetch:
             # shoulder lift joint
             Segment(defaultArmLength, 'y', r(-87), r(70)),
 
-            # upper arm roll joint – default limits of 0 - 360
+            # upper arm roll joint: default limits of 0 - 360
             Segment(defaultArmLength, 'x'),
 
             # elbow flex joint
             Segment(defaultArmLength, 'y', r(-129), r(129)),
 
-            # forearm roll joint – default limits of 0 - 360
+            # forearm roll joint: default limits of 0 - 360
             Segment(defaultArmLength, 'x', ),
 
             # wrist flex joint
             Segment(defaultArmLength, 'y', r(-125), r(125)),
 
-            # wrist roll joint – default limits of 0 - 360
+            # wrist roll joint: default limits of 0 - 360
             Segment(defaultArmLength, 'x', ),
         ]
 
@@ -123,8 +122,9 @@ class Fetch:
         return extractTranslation(self.segments[segmentIndex].computeGlobalTransformationMatrix())
 
     def getSegmentPositions(self):
-        return np.concatenate([[self.getSegmentPosition(i) for i in range(len(self.segments))],
-                               self.base])
+        x = np.array([self.getSegmentPosition(i) for i in range(len(self.segments))]).squeeze()
+        print(x.shape)
+        return x
 
     def getTool(self):
         return self.getSegmentPosition(-1)
@@ -149,7 +149,7 @@ class Fetch:
 
         segmentPairs = []
         for i in range(1, len(self.segments) - 1):
-            segmentPairs.append((segmentPositions[i].getA1(), segmentPositions[i + 1].getA1()))
+            segmentPairs.append((segmentPositions[i].flatten(), segmentPositions[i + 1].flatten()))
 
         i = -1
         for segmentPair in segmentPairs:

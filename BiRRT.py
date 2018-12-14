@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import numpy as np
 
@@ -177,7 +178,7 @@ class BiRRT:
 
     def step(self):
         if self.solution:
-            print("Done – please stop calling step")
+            print("Done: please stop calling step")
             return
 
         self.steps += 1
