@@ -187,7 +187,12 @@ class Fetch:
     # destination is a 3x1 xyz
     def getPoseDeltas(self, destination, delta=1e-2):
         initialToolPos = self.getTool()
-        currentError = np.vstack([destination - initialToolPos, 1])  # 4x1
+        print(destination.shape)
+        print(initialToolPos.shape)
+        x = destination - initialToolPos.squeeze()
+        print(x.shape)
+        currentError = np.vstack([x.transpose(), 1])  # 4x1
+        # currentError = np.expand_dims(currentError, axis=1)
 
         jac = []
 

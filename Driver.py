@@ -51,7 +51,7 @@ def go_to_pose_naive(robot, robot_sim, goal_pose):
         print("Moved simulation robot")
 
 
-maxDistance = np.linalg.norm(Fetch().getTool()) * 0.75:
+maxDistance = np.linalg.norm(Fetch().getTool()) * 0.75
 def go_to_goal_with_rrt(robot, robot_sim, goal):
     # sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1, 0, 0))
     print("Finding ideal pose")
@@ -59,11 +59,13 @@ def go_to_goal_with_rrt(robot, robot_sim, goal):
     goalPosition = goal
     driveTo = np.zeros((2,1))
 
-    if np.linalg.norm(goal) > maxDistance
+    if np.linalg.norm(goal) > maxDistance:
         goalXY = goal[:-1]
         newGoalXY = goalXY / np.linalg.norm(goal[:-1]) * maxDistance
 
-        goalPosition = np.vstack(newGoalXY, goal[-1])
+        print(newGoalXY.shape)
+        print(goal[-1].shape)
+        goalPosition = np.vstack([newGoalXY, goal[-1]])
         driveTo = goalXY - newGoalXY
 
     ideal_pose, error = robot.inverseKinematics(goalPosition, verbose=1)
@@ -71,8 +73,6 @@ def go_to_goal_with_rrt(robot, robot_sim, goal):
     # NOTE: this assumes x is in front of the robot, which I think it is
     theta = np.arctan2(driveTo[1], driveTo[0])
     movementDistance = np.linalg.norm(driveTo)
-
-
 
     # print("Ideal pose found", ideal_pose, "with error of", error)
     # ideal_pose = np.array([-1.13793837, -0.42068421, 5.03419161, -2.0732122,
@@ -111,7 +111,6 @@ def go_to_pose_with_rrt(robot, robot_sim, goal_pose, movementDistance):
         fullPose = False
 
     for goal_pose in rrt.solution:
-
         robot.applyPoses(goal_pose)
         if not robot.isCurrentPoseValid():
             print("INVALID POSE BEEP BOOP")
@@ -151,6 +150,7 @@ if __name__ == "__main__":
     pose = np.array(
         [-1, 0.2, 7.71942311e-01, 2.24147991e+00, 4.61934400e-04, 1.03087359e+00, 2.18929696e-03, 1, 1, np.pi / 2])
     # go_to_pose_naive(fetch, fetch_sim, pose)
+    go_to_goal_with_rrt(fetch, fetch_sim, np.array([3, 3, 1]))
     print("Went to the pose...")
 
     # and here is how we get to the pose with RRT

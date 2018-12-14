@@ -228,17 +228,39 @@ class FetchSimulation:
         self.planning_scene.addCube("my_left_ground", 2, 0.0, 1.2, -1.0)
         self.planning_scene.addCube("my_right_ground", 2, 0.0, -1.2, -1.0)
 
+        # for moving the base
+        self.move_base = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+        # for moving the arm and the torso
+        self.move_arm_and_torso = actionlib.SimpleActionClient("arm_with_torso_controller/follow_joint_trajectory",
+                                                               FollowJointTrajectoryAction)
+        self.update_position(Twist(), [x.position for x in self.torso_joints + self.arm_joints])
+
+    def update_position(self, base, arm_torso):
+        self.move_base.publish(base)
+        print("Published base goal")
+
+        arm_and_torso_trajectory = JointTrajectory()
+        arm_and_torso_trajectory.joint_names = self.torso_joint_names + self.arm_joint_names
+        arm_and_torso_trajectory.points.append(JointTrajectoryPoint())
+        arm_and_torso_trajectory.points[0].positions = arm_torso
+        arm_and_torso_trajectory.points[0].velocities = [0.0 for _ in arm_torso]
+        arm_and_torso_trajectory.points[0].accelerations = [0.0 for _ in arm_torso]
+        arm_and_torso_trajectory.points[0].time_from_start = rospy.Duration(int(5))
+
+        arm_and_torso_goal = FollowJointTrajectoryGoal()
+        arm_and_torso_goal.trajectory = arm_and_torso_trajectory
+
+        print("Got arm and torso goal")
+        self.move_arm_and_torso.send_goal_and_wait(arm_and_torso_goal, rospy.Duration(5), rospy.Duration(5))
+        print("Sent arm and torso goal\nWaiting 5s")
+        # self.move_arm_and_torso.wait_for_server(rospy.Duration(5))
+        print("Moving on!")
+
     def move_to_pose(self, pose_10d, relative=False):
         arm_joint_values = pose_10d[:7]
         base_joint_values = pose_10d[7:]
         assert (len(arm_joint_values) == 7)
         assert (len(base_joint_values) == 3)
-
-        # for moving the base
-        move_base = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-        # for moving the arm and the torso
-        move_arm_and_torso = actionlib.SimpleActionClient("arm_with_torso_controller/follow_joint_trajectory",
-                                                          FollowJointTrajectoryAction)
 
         try:
             base_goal = Twist()
@@ -250,8 +272,6 @@ class FetchSimulation:
                 base_goal.linear.x = base_joint_values[0]  # x
                 # base_goal.linear.y = base_joint_values[1]  # y
                 base_goal.angular.z = base_joint_values[2]  # theta
-            move_base.publish(base_goal)
-            print("Published base goal")
 
             if relative:
                 self.shoulder_pan_joint.position += arm_joint_values[0]  # arm1
@@ -271,26 +291,12 @@ class FetchSimulation:
                 self.wrist_roll_joint.position = arm_joint_values[6]  # arm7
             arm_and_torso_desired_position = [x.position for x in self.torso_joints + self.arm_joints]
 
-            arm_and_torso_trajectory = JointTrajectory()
-            arm_and_torso_trajectory.joint_names = self.torso_joint_names + self.arm_joint_names
-            arm_and_torso_trajectory.points.append(JointTrajectoryPoint())
-            arm_and_torso_trajectory.points[0].positions = arm_and_torso_desired_position
-            arm_and_torso_trajectory.points[0].velocities = [0.0 for _ in arm_and_torso_desired_position]
-            arm_and_torso_trajectory.points[0].accelerations = [0.0 for _ in arm_and_torso_desired_position]
-            arm_and_torso_trajectory.points[0].time_from_start = rospy.Duration(int(5))
+            self.update_position(base_goal, arm_and_torso_desired_position)
 
-            arm_and_torso_goal = FollowJointTrajectoryGoal()
-            arm_and_torso_goal.trajectory = arm_and_torso_trajectory
-
-            print("Got arm and torso goal")
-            move_arm_and_torso.send_goal(arm_and_torso_goal)
-            print("Sent arm and torso goal\nWaiting 5s")
-            move_arm_and_torso.wait_for_server(rospy.Duration(5))
-            print("Moving on!")
         except Exception as e:
             print(e)
-            move_base.publish(Twist())  # stop the base from moving
-            move_arm_and_torso.cancel_all_goals()
+            self.move_base.publish(Twist())  # stop the base from moving
+            self.move_arm_and_torso.cancel_all_goals()
 
 
 if __name__ == "__main__":
