@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from Segment import Segment
 from math import radians as r
 from FetchUtil import extractTranslation, vectorToNumpyArray, closestDistanceBetweenLines

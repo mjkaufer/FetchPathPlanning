@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from vpython import *
 from Fetch import Fetch
 import numpy as np

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on 13 Dec 2018 at 10:33
@@ -227,7 +228,7 @@ class FetchSimulation:
         self.planning_scene.addCube("my_left_ground", 2, 0.0, 1.2, -1.0)
         self.planning_scene.addCube("my_right_ground", 2, 0.0, -1.2, -1.0)
 
-    def move_to_pose(self, pose_10d):
+    def move_to_pose(self, pose_10d, relative=False):
         arm_joint_values = pose_10d[:7]
         base_joint_values = pose_10d[7:]
         assert (len(arm_joint_values) == 7)
@@ -241,18 +242,32 @@ class FetchSimulation:
 
         try:
             base_goal = Twist()
-            base_goal.linear.x = base_joint_values[0]  # x
-            # base_goal.linear.y = base_joint_values[1]  # y
-            base_goal.angular.z = base_joint_values[2]  # theta
+            if relative:
+                base_goal.linear.x += base_joint_values[0]  # x
+                # base_goal.linear.y = base_joint_values[1]  # y
+                base_goal.angular.z += base_joint_values[2]  # theta
+            else:
+                base_goal.linear.x = base_joint_values[0]  # x
+                # base_goal.linear.y = base_joint_values[1]  # y
+                base_goal.angular.z = base_joint_values[2]  # theta
             move_base.publish(base_goal)
 
-            self.shoulder_pan_joint.position = arm_joint_values[0]  # arm1
-            self.shoulder_lift_joint.position = arm_joint_values[1]  # arm2
-            self.upperarm_roll_joint.position = arm_joint_values[2]  # arm3
-            self.elbow_flex_joint.position = arm_joint_values[3]  # arm4
-            self.forearm_roll_joint.position = arm_joint_values[4]  # arm5
-            self.wrist_flex_joint.position = arm_joint_values[5]  # arm6
-            self.wrist_roll_joint.position = arm_joint_values[6]  # arm7
+            if relative:
+                self.shoulder_pan_joint.position += arm_joint_values[0]  # arm1
+                self.shoulder_lift_joint.position += arm_joint_values[1]  # arm2
+                self.upperarm_roll_joint.position += arm_joint_values[2]  # arm3
+                self.elbow_flex_joint.position += arm_joint_values[3]  # arm4
+                self.forearm_roll_joint.position += arm_joint_values[4]  # arm5
+                self.wrist_flex_joint.position += arm_joint_values[5]  # arm6
+                self.wrist_roll_joint.position += arm_joint_values[6]  # arm7
+            else:
+                self.shoulder_pan_joint.position = arm_joint_values[0]  # arm1
+                self.shoulder_lift_joint.position = arm_joint_values[1]  # arm2
+                self.upperarm_roll_joint.position = arm_joint_values[2]  # arm3
+                self.elbow_flex_joint.position = arm_joint_values[3]  # arm4
+                self.forearm_roll_joint.position = arm_joint_values[4]  # arm5
+                self.wrist_flex_joint.position = arm_joint_values[5]  # arm6
+                self.wrist_roll_joint.position = arm_joint_values[6]  # arm7
             arm_and_torso_desired_position = [x.position for x in self.torso_joints + self.arm_joints]
 
             arm_and_torso_trajectory = JointTrajectory()
@@ -266,13 +281,11 @@ class FetchSimulation:
             arm_and_torso_goal = FollowJointTrajectoryGoal()
             arm_and_torso_goal.trajectory = arm_and_torso_trajectory
 
-            move_arm_and_torso.send_goal(arm_and_torso_goal)
+            move_arm_and_torso.send_goal_and_wait(arm_and_torso_goal)
         except Exception as e:
             print(e)
-        finally:
             move_base.publish(Twist())  # stop the base from moving
             move_arm_and_torso.cancel_all_goals()
-        pass
 
 
 if __name__ == "__main__":

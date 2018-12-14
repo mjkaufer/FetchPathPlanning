@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 
 matrixBottom = np.array([[0,0,0,1]])
