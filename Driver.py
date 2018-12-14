@@ -27,15 +27,15 @@ def example_body_collision(robot, robot_sim):
     robot_sim.move_to_pose(poses, relative=False)
 
 
-def go_to_goal(robot, robot_sim, goal):
+def go_to_goal_naive(robot, robot_sim, goal):
     # sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1, 0, 0))
     print("Finding ideal pose")
     idealPose, error = robot.inverseKinematics(goal, verbose=0)
     print("Ideal pose found", idealPose, "with error of", error)
-    go_to_pose(robot, robot_sim, idealPose)
+    go_to_pose_naive(robot, robot_sim, idealPose)
 
 
-def go_to_pose(robot, robot_sim, goal_pose):
+def go_to_pose_naive(robot, robot_sim, goal_pose):
     segmentation = 100
     pose_delta = (np.array(goal_pose) - np.array(robot.getPoses())) / segmentation
     for i in range(segmentation):
@@ -51,17 +51,40 @@ def go_to_pose(robot, robot_sim, goal_pose):
         print("Moved simulation robot")
 
 
+maxDistance = np.linalg.norm(Fetch().getTool()) * 0.75:
 def go_to_goal_with_rrt(robot, robot_sim, goal):
     # sphere(pos=vector(*goal.flatten()), radius=25, color=vector(1, 0, 0))
     print("Finding ideal pose")
-    ideal_pose, error = robot.inverseKinematics(goal, verbose=1)
+
+    goalPosition = goal
+    driveTo = np.zeros((2,1))
+
+    if np.linalg.norm(goal) > maxDistance
+        goalXY = goal[:-1]
+        newGoalXY = goalXY / np.linalg.norm(goal[:-1]) * maxDistance
+
+        goalPosition = np.vstack(newGoalXY, goal[-1])
+        driveTo = goalXY - newGoalXY
+
+    ideal_pose, error = robot.inverseKinematics(goalPosition, verbose=1)
+
+    # NOTE: this assumes x is in front of the robot, which I think it is
+    theta = np.arctan2(driveTo[1], driveTo[0])
+    movementDistance = np.linalg.norm(driveTo)
+
+
+
     # print("Ideal pose found", ideal_pose, "with error of", error)
     # ideal_pose = np.array([-1.13793837, -0.42068421, 5.03419161, -2.0732122,
     #     5.94965048, -0.82803775, 5.27579817])
-    go_to_pose_with_rrt(robot, robot_sim, ideal_pose)
+    robot_sim.move_to_pose(np.array([0] * 9 + [-1 * theta]), relative=True)
+
+    go_to_pose_with_rrt(robot, robot_sim, ideal_pose, movementDistance)
+
+    robot_sim.move_to_pose(np.array([0] * 9 + [theta]), relative=True)
 
 
-def go_to_pose_with_rrt(robot, robot_sim, goal_pose):
+def go_to_pose_with_rrt(robot, robot_sim, goal_pose, movementDistance):
     rrt = BiRRT(robot, goal_pose)
     i = 0
     print("Generating RRT")
@@ -78,13 +101,30 @@ def go_to_pose_with_rrt(robot, robot_sim, goal_pose):
     # dt = desiredTime / len(rrt.solution)
     print("Planning complete; moving to goal pose")
 
+    currentX = 0
+    dx = movementDistance / len(rrt.solution)
+
+    # I'm pretty sure the new code is using 10d pose
+    # but I can't run it on my machine, so this is just to make sure
+    fullPose = True
+    if len(rrt.solution[0]) == 7:
+        fullPose = False
+
     for goal_pose in rrt.solution:
+
         robot.applyPoses(goal_pose)
         if not robot.isCurrentPoseValid():
             print("INVALID POSE BEEP BOOP")
 
+        absolutePose = goal_pose
+
+        if not fullPose:
+            absolutePose = np.concatenate((np.array(absolutePose), np.array([currentX, 0, 0])))
+        else:
+            absolutePose[-3] = currentX
         # rerender(robot)
-        robot_sim.move_to_pose(goal_pose, relative=False)
+        robot_sim.move_to_pose(absolutePose, relative=False)
+        currentX += dx
 
     print("All done")
     print("Start tree length", len(rrt.startTree))
@@ -110,16 +150,16 @@ if __name__ == "__main__":
 
     pose = np.array(
         [-1, 0.2, 7.71942311e-01, 2.24147991e+00, 4.61934400e-04, 1.03087359e+00, 2.18929696e-03, 1, 1, np.pi / 2])
-    go_to_pose(fetch, fetch_sim, pose)
+    # go_to_pose_naive(fetch, fetch_sim, pose)
     print("Went to the pose...")
 
     # and here is how we get to the pose with RRT
-    go_to_pose_with_rrt(fetch, fetch_sim, pose)
+    # go_to_pose_with_rrt(fetch, fetch_sim, pose)
     print("Is the pose valid?", fetch.isPoseValid())
 
     # example_body_collision(fetch)
     # go_to_goal_with_rrt(fetch, goal)
-    # go_to_goal(fetch, goal)
+    # go_to_goal_naive(fetch, goal)
 
-    # go_to_pose(fetch)
+    # go_to_pose_naive(fetch)
     # rerender(fetch)

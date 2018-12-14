@@ -126,7 +126,14 @@ class Fetch:
         print(x.shape)
         return x
 
-    def getTool(self):
+    def getTool(self, pose=None):
+        if pose is not None:
+            oldPose = self.getPoses()
+            self.applyPoses(pose)
+            tool = self.getSegmentPosition(-1)
+            self.applyPoses(oldPose)
+            return tool
+
         return self.getSegmentPosition(-1)
 
     def isPoseValid(self, pose=None):
