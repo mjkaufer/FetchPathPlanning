@@ -90,7 +90,6 @@ class MoveBaseClient(object):
         self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         rospy.loginfo("Waiting for move_base...")
         self.client.wait_for_server()
-
     def go_to(self, x, y, theta, frame="map"):
         move_goal = MoveBaseGoal()
         move_goal.target_pose.pose.position.x = x
@@ -99,7 +98,6 @@ class MoveBaseClient(object):
         move_goal.target_pose.pose.orientation.w = cos(theta / 2.0)
         move_goal.target_pose.header.frame_id = frame
         move_goal.target_pose.header.stamp = rospy.Time.now()
-
         # wait for things to work
         self.client.send_goal(move_goal)
         self.client.wait_for_result()
@@ -139,17 +137,14 @@ class FetchSimulation:
             self.position = 0.0  # type: float
             self.velocity = 0.0  # type: float
             self.force = 0.0  # type: float
-
             if min_range is None or max_range is None:
                 self.joint_range = None
             else:
                 self.joint_range = (min_range, max_range)
-
             if max_velocity is None:
                 self.velocity_range = None
             else:
                 self.velocity_range = (0.0, max_velocity)
-
             if max_force is None:
                 self.force_range = None
             else:
@@ -163,22 +158,18 @@ class FetchSimulation:
     def __init__(self):
         print("Make sure you have launched \n\t\"roslaunch fetch_moveit_config move_group.launch\"\n"
               "before instantiating the robot simulation!")
-
         self.l_wheel_joint = FetchSimulation.RobotJoint("l_wheel_joint", max_velocity=17.4, max_force=8.85)
         self.r_wheel_joint = FetchSimulation.RobotJoint("r_wheel_joint", max_velocity=17.4, max_force=8.85)
         self.base_joints = [self.l_wheel_joint, self.r_wheel_joint]
-
         self.torso_joint = FetchSimulation.RobotJoint("torso_lift_joint", min_range=0, max_range=400, max_velocity=0.1,
                                                       max_force=450)
         self.torso_joints = [self.torso_joint]
-
         self.head_pan_joint = FetchSimulation.RobotJoint("head_pan_joint", min_range=-90, max_range=90,
                                                          max_velocity=1.57, max_force=0.32)
         self.head_tilt_joint = FetchSimulation.RobotJoint("head_tilt_joint", min_range=-45, max_range=90,
                                                           max_velocity=1.57,
                                                           max_force=0.68)  # -45 upwards and 90 downwards
         self.head_joints = [self.head_pan_joint, self.head_tilt_joint]
-
         self.shoulder_pan_joint = FetchSimulation.RobotJoint("shoulder_pan_joint", min_range=-92, max_range=92,
                                                              max_velocity=1.25, max_force=33.82)
         self.shoulder_lift_joint = FetchSimulation.RobotJoint("shoulder_lift_joint", min_range=-70, max_range=87,
@@ -192,29 +183,23 @@ class FetchSimulation:
         self.wrist_roll_joint = FetchSimulation.RobotJoint("wrist_roll_joint", max_velocity=2.26, max_force=7.36)
         self.arm_joints = [self.shoulder_pan_joint, self.shoulder_lift_joint, self.upperarm_roll_joint,
                            self.elbow_flex_joint, self.forearm_roll_joint, self.wrist_flex_joint, self.wrist_roll_joint]
-
         self.l_gripper_finger_joint = FetchSimulation.RobotJoint("l_gripper_finger_joint", min_range=0, max_range=50,
                                                                  max_velocity=0.05, max_force=60)
         self.r_gripper_finger_joint = FetchSimulation.RobotJoint("r_gripper_finger_joint", min_range=0, max_range=50,
                                                                  max_velocity=0.05, max_force=60)
         self.gripper_joints = [self.l_gripper_finger_joint, self.r_gripper_finger_joint]
-
         self.joints = self.base_joints + self.torso_joints + self.head_joints + self.arm_joints + self.gripper_joints
         assert (len(self.joints) == 14)
-
         self.position = {'x': 0.0, 'y': 0.0, 'z': 0.0}
         self.orientation = 0.0
-
         self.base_joint_names = [x.name for x in self.base_joints]
         self.torso_joint_names = [x.name for x in self.torso_joints]
         self.head_joint_names = [x.name for x in self.head_joints]
         self.arm_joint_names = [x.name for x in self.arm_joints]
         self.gripper_joint_names = [x.name for x in self.gripper_joints]
         self.joint_names = [x.name for x in self.joints]
-
         # Create move group interface for a fetch robot
         self.move_group = MoveGroupInterface("arm_with_torso", "base_link")
-
         # Define ground plane
         # This creates objects in the planning scene that mimic the ground
         # If these were not in place gripper could hit the ground
@@ -227,9 +212,11 @@ class FetchSimulation:
         self.planning_scene.addCube("my_back_ground", 2, -1.2, 0.0, -1.0)
         self.planning_scene.addCube("my_left_ground", 2, 0.0, 1.2, -1.0)
         self.planning_scene.addCube("my_right_ground", 2, 0.0, -1.2, -1.0)
-
+        self.planning_scene.addBox("dest1", 0.1, 0.1, 0.1, 1, -1, 0.03)
+        self.planning_scene.addBox("dest2", 0.1, 0.1, 0.1, 2, 1, 0.04)
         # for moving the base
         self.move_base = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+        # self.move_base = MoveBaseClient()
         # for moving the arm and the torso
         self.move_arm_and_torso = actionlib.SimpleActionClient("arm_with_torso_controller/follow_joint_trajectory",
                                                                FollowJointTrajectoryAction)
@@ -237,8 +224,8 @@ class FetchSimulation:
 
     def update_position(self, base, arm_torso):
         self.move_base.publish(base)
+        # self.move_base.go_to(base[0], base[1], base[2])
         print("Published base goal")
-
         arm_and_torso_trajectory = JointTrajectory()
         arm_and_torso_trajectory.joint_names = self.torso_joint_names + self.arm_joint_names
         arm_and_torso_trajectory.points.append(JointTrajectoryPoint())
@@ -246,12 +233,11 @@ class FetchSimulation:
         arm_and_torso_trajectory.points[0].velocities = [0.0 for _ in arm_torso]
         arm_and_torso_trajectory.points[0].accelerations = [0.0 for _ in arm_torso]
         arm_and_torso_trajectory.points[0].time_from_start = rospy.Duration(int(5))
-
         arm_and_torso_goal = FollowJointTrajectoryGoal()
         arm_and_torso_goal.trajectory = arm_and_torso_trajectory
-
         print("Got arm and torso goal")
-        self.move_arm_and_torso.send_goal_and_wait(arm_and_torso_goal, rospy.Duration(5), rospy.Duration(5))
+        # self.move_arm_and_torso.send_goal_and_wait(arm_and_torso_goal, rospy.Duration(1))
+        self.move_arm_and_torso.send_goal(arm_and_torso_goal)
         print("Sent arm and torso goal\nWaiting 5s")
         # self.move_arm_and_torso.wait_for_server(rospy.Duration(5))
         print("Moving on!")
@@ -261,7 +247,6 @@ class FetchSimulation:
         base_joint_values = pose_10d[7:]
         assert (len(arm_joint_values) == 7)
         assert (len(base_joint_values) == 3)
-
         try:
             base_goal = Twist()
             if relative:
@@ -272,7 +257,6 @@ class FetchSimulation:
                 base_goal.linear.x = base_joint_values[0]  # x
                 # base_goal.linear.y = base_joint_values[1]  # y
                 base_goal.angular.z = base_joint_values[2]  # theta
-
             if relative:
                 self.shoulder_pan_joint.position += arm_joint_values[0]  # arm1
                 self.shoulder_lift_joint.position += arm_joint_values[1]  # arm2
@@ -290,9 +274,7 @@ class FetchSimulation:
                 self.wrist_flex_joint.position = arm_joint_values[5]  # arm6
                 self.wrist_roll_joint.position = arm_joint_values[6]  # arm7
             arm_and_torso_desired_position = [x.position for x in self.torso_joints + self.arm_joints]
-
             self.update_position(base_goal, arm_and_torso_desired_position)
-
         except Exception as e:
             print(e)
             self.move_base.publish(Twist())  # stop the base from moving

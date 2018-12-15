@@ -64,11 +64,15 @@ def go_to_goal_with_rrt(robot, robot_sim, goal):
         newGoalXY = goalXY / np.linalg.norm(goal[:-1]) * maxDistance
 
         print(newGoalXY.shape)
-        print(goal[-1].shape)
-        goalPosition = np.vstack([newGoalXY, goal[-1]])
+        print(np.expand_dims(goal[-1], axis=0).shape)
+        goalPosition = np.concatenate([newGoalXY, np.expand_dims(goal[-1], axis=0)], axis=0)
         driveTo = goalXY - newGoalXY
 
-    ideal_pose, error = robot.inverseKinematics(goalPosition, verbose=1)
+    print(goalPosition)
+    print(driveTo)
+    print(goalPosition.shape)
+    print(driveTo.shape)
+    ideal_pose, error = robot.inverseKinematics(np.expand_dims(goalPosition, axis=1), verbose=1)
 
     # NOTE: this assumes x is in front of the robot, which I think it is
     theta = np.arctan2(driveTo[1], driveTo[0])
@@ -150,13 +154,16 @@ if __name__ == "__main__":
     pose = np.array(
         [-1, 0.2, 7.71942311e-01, 2.24147991e+00, 4.61934400e-04, 1.03087359e+00, 2.18929696e-03, 1, 1, np.pi / 2])
     # go_to_pose_naive(fetch, fetch_sim, pose)
-    go_to_goal_with_rrt(fetch, fetch_sim, np.array([3, 3, 1]))
+    go_to_goal_with_rrt(fetch, fetch_sim, 1000*np.array([1, -1, 0.03]))
     print("Went to the pose...")
+    print("Is the pose valid?", fetch.isPoseValid())
 
     # and here is how we get to the pose with RRT
     # go_to_pose_with_rrt(fetch, fetch_sim, pose)
-    print("Is the pose valid?", fetch.isPoseValid())
 
+    go_to_goal_with_rrt(fetch, fetch_sim, 1000*np.array([1, 2, 0.01]))
+    print("Went to the pose...")
+    print("Is the pose valid?", fetch.isPoseValid())
     # example_body_collision(fetch)
     # go_to_goal_with_rrt(fetch, goal)
     # go_to_goal_naive(fetch, goal)
