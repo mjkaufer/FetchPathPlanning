@@ -2,6 +2,8 @@
 
 ![Simulation](./planning.gif)
 
+> Demo of the simulated planner in action. Notice how it avoids self intersection and collision with the floor.
+
 ## Current State
 * Basic segment model of the Fetch
     * Can do inverse kinematics, track tool position
