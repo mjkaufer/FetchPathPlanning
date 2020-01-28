@@ -1,5 +1,7 @@
 # Mobile Manipulation Path Planning
 
+![Simulation](./planning.gif)
+
 ## Current State
 * Basic segment model of the Fetch
     * Can do inverse kinematics, track tool position
